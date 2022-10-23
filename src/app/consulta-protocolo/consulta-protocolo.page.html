@@ -1,5 +1,5 @@
 <ion-header>
-  <ion-toolbar color="dark">
+  <ion-toolbar>
     <ion-title>Consulta de Protocolo</ion-title>
     <ion-button size="small" slot="end" color="danger" (click)="logout()">
       <ion-icon name="exit-outline"></ion-icon>
@@ -7,6 +7,35 @@
   </ion-toolbar>
 </ion-header>
 
-<ion-content color="dark">
+<ion-content
+  [fullscreen]="true"
+  [style.--background]="scanActive?'#00000000':'#ffffff'"
+>
+  <form (ngSubmit)="consultarProtocolo()" [formGroup]="protocolo">
+    <div class="input-group">
+      <ion-item>
+        <ion-input placeholder="Nº Protocolo" formControlName="protocolo"></ion-input>
+        <ion-button item-right (click)="startScanner()" [hidden]="scanActive">
+          <ion-icon name="qr-code-outline"></ion-icon>&nbsp;Ler Qr Code
+        </ion-button>
+      </ion-item>
+    </div>
+    <div class="input-group">
+      <ion-row>
+        <ion-col class="ion-no-padding">
+          <ion-button expand="full" type="submit" [disabled]="!protocolo.valid">Consultar</ion-button>
+        </ion-col>
+      </ion-row>
+    </div>
+  </form>
+
+
+  <ion-row class="scan-button" [hidden]="!scanActive">
+    <ion-col class="ion-no-padding">
+      <ion-button expand="full" (click)="stopScanner()">Cancelar</ion-button>
+    </ion-col>
+  </ion-row>
+
+  <div class="scan-box" [hidden]="!scanActive"></div>
 
 </ion-content>

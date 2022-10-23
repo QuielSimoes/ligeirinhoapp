@@ -1,4 +1,4 @@
-<ion-content color="dark">
+<ion-content>
 
   <ion-grid>
 		<ion-row class="ion-justify-content-center">
@@ -10,29 +10,15 @@
 
   <form (ngSubmit)="login()" [formGroup]="credenciais">
     <div class="input-group">
-      <ion-item color="dark">
+      <ion-item>
         <ion-input placeholder="Login" formControlName="login"></ion-input>
       </ion-item>
-      <ion-item color="dark">
+      <ion-item>
         <ion-input type="password" placeholder="Senha" formControlName="senha"></ion-input>
       </ion-item>
     </div>
 
     <ion-button type="submit" expand="block" [disabled]="!credenciais.valid">Entrar</ion-button>    
   </form>
-  
-  <!-- <ion-item color="dark">
-    <ion-label position="floating">Login</ion-label>
-    <ion-input [(ngModel)]="login" type="text" required></ion-input>
-  </ion-item>
-
-  <ion-item color="dark">
-    <ion-label position="floating">Senha</ion-label>
-    <ion-input [(ngModel)]="senha" type="password" required></ion-input>
-  </ion-item>
-
-  <ion-button class="ion-margin-top" type="submit" expand="block" color="primary" (click)="onSubmit()">
-    Entrar
-  </ion-button> -->
 
 </ion-content>

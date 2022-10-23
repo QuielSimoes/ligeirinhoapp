@@ -7,6 +7,8 @@ import { Storage } from '@ionic/storage';
 import { LoginRequest } from './interfaces/login/login-request';
 import { tap } from  'rxjs/operators';
 import { LoginResponse } from './interfaces/login/login-response';
+import { ConsultaProtocoloRequest } from './interfaces/consultar-protocolo/consulta-protocolo-request';
+import { ConsultaProtocoloResponse } from './interfaces/consultar-protocolo/consulta-protocolo-response';
 
 @Injectable({
   providedIn: 'root'
@@ -37,7 +39,6 @@ export class ApiService {
   login(credentials: LoginRequest): Observable<LoginResponse> {
     return this.http.post<LoginResponse>(`${this.url}autenticar.json`, credentials).pipe(
       tap(async (loginResponse: LoginResponse) => {
-        //console.log(loginResponse);
         if (loginResponse.ok) {
           await this.storage.set('ID', loginResponse.dados.id);
           await this.storage.set('NOME', loginResponse.dados.nome);
@@ -46,7 +47,6 @@ export class ApiService {
           await this.storage.set('TOKEN', loginResponse.dados.token);
           this.isAuthenticated.next(true);
         }
-        //return loginResponse;
       })
     );
   }
@@ -55,5 +55,9 @@ export class ApiService {
     this.storage.remove('TOKEN');
     this.isAuthenticated.next(false);
     this.router.navigateByUrl('/', {replaceUrl: true});
+  }
+
+  consultarProtocolo(dados: ConsultaProtocoloRequest): Observable<any> {
+    return this.http.post(`${this.url}consultarProtocolo.json`, dados);
   }
 }

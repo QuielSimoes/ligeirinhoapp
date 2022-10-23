@@ -1,5 +1,7 @@
 {
   "name": "ligeirinho",
-  "integrations": {},
+  "integrations": {
+    "capacitor": {}
+  },
   "type": "angular"
 }

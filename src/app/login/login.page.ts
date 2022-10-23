@@ -34,10 +34,6 @@ export class LoginPage implements OnInit {
     await loading.present();
 
     this.apiService.login(this.credenciais.value).subscribe(
-      /*async _ => {
-        await loading.dismiss();
-        this.router.navigateByUrl('/consulta-protocolo', {replaceUrl: true});
-      },*/
       async (res: LoginResponse) => {
         await loading.dismiss();
         if(res.ok) {
