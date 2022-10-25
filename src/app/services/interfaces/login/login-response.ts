@@ -7,5 +7,9 @@ export interface LoginResponse {
         foto: string;
         ultimoAcesso: string;
         token: string;
+        situacoesNegativas: [
+            id: number,
+            nome: string
+        ];
     };
 }

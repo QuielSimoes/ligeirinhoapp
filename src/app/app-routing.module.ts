@@ -17,6 +17,10 @@ const routes: Routes = [
     loadChildren: () => import('./consulta-protocolo/consulta-protocolo.module').then( m => m.ConsultaProtocoloPageModule),
     canLoad: [AuthGuard]
   },
+  {
+    path: 'retorno-ar',
+    loadChildren: () => import('./retorno-ar/retorno-ar.module').then( m => m.RetornoArPageModule)
+  },
 ];
 
 @NgModule({

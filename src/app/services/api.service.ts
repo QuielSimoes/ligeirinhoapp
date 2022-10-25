@@ -8,7 +8,6 @@ import { LoginRequest } from './interfaces/login/login-request';
 import { tap } from  'rxjs/operators';
 import { LoginResponse } from './interfaces/login/login-response';
 import { ConsultaProtocoloRequest } from './interfaces/consultar-protocolo/consulta-protocolo-request';
-import { ConsultaProtocoloResponse } from './interfaces/consultar-protocolo/consulta-protocolo-response';
 
 @Injectable({
   providedIn: 'root'
@@ -40,11 +39,14 @@ export class ApiService {
     return this.http.post<LoginResponse>(`${this.url}autenticar.json`, credentials).pipe(
       tap(async (loginResponse: LoginResponse) => {
         if (loginResponse.ok) {
+          const situacoes = loginResponse.dados.situacoesNegativas;
+          //console.log(loginResponse.dados.situacoesNegativas, 'situacoesNegativas');
           await this.storage.set('ID', loginResponse.dados.id);
           await this.storage.set('NOME', loginResponse.dados.nome);
           await this.storage.set('FOTO', loginResponse.dados.foto);
           await this.storage.set('ULTIMO_ACESSO', loginResponse.dados.ultimoAcesso);
           await this.storage.set('TOKEN', loginResponse.dados.token);
+          await this.storage.set('SITUACOES', situacoes);
           this.isAuthenticated.next(true);
         }
       })

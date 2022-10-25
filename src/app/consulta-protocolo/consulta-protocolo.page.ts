@@ -96,8 +96,7 @@ export class ConsultaProtocoloPage implements OnInit {
           protocolo: ''
         });
         if(res.ok) {
-          // @todo criar nova página para receber o ID do protocolo e permitir a baixa
-          //this.router.navigateByUrl('/consulta-protocolo', {replaceUrl: true});
+          this.router.navigateByUrl('/retorno-ar');
         } else {
           const alert = await this.alertController.create({
             header: 'Ops!',
