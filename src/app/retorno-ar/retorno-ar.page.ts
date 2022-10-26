@@ -5,6 +5,7 @@ import { Platform, LoadingController, ToastController } from '@ionic/angular';
 import { Camera, CameraResultType, CameraSource, Photo } from '@capacitor/camera';
 import { finalize } from 'rxjs/operators';
 import { Storage } from '@ionic/storage';
+import { Geolocation } from '@capacitor/geolocation';
 
 const IMAGE_DIR = 'stored-images';
 
@@ -16,6 +17,12 @@ const convertBlobToBase64 = (blob: Blob) => new Promise((resolve, reject) => {
   };
   reader.readAsDataURL(blob);
 });
+
+const printCurrentPosition = async () => {
+  const coordinates = await Geolocation.getCurrentPosition();
+
+  console.log('Current position:', coordinates);
+};
 
 interface LocalFile {
 	name: string;
@@ -50,16 +57,20 @@ export class RetornoArPage implements OnInit {
   ) { }
 
   ngOnInit() {
-    this.loadFiles();
+    this.carregarFotos();
     this.carregarSituacoes();
   }
 
+  /**
+   * Carrega as situações a partir do storage (login)
+   */
   async carregarSituacoes() {
     this.situacoes = (await this.storage.get('SITUACOES')) as Lista[];
   }
 
-  async loadFiles() {
+  async carregarFotos() {
 		this.images = [];
+    printCurrentPosition();
 
 		const loading = await this.loadingCtrl.create({
 			message: 'Carregando...'
@@ -141,7 +152,7 @@ export class RetornoArPage implements OnInit {
 
       // Reload the file list
       // Improve by only loading for the new image and unshifting array!
-      this.loadFiles();
+      this.carregarFotos();
   }
 
   // Convert the base64 to blob data
@@ -185,8 +196,8 @@ export class RetornoArPage implements OnInit {
         directory: Directory.Data,
         path: file.path
     });
-    this.loadFiles();
-    this.presentToast('File removed.');
+    this.carregarFotos();
+    this.presentToast('Foto removida.');
   }
 
   // https://ionicframework.com/docs/angular/your-first-app/3-saving-photos
