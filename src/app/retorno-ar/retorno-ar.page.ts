@@ -1,11 +1,15 @@
+import { BaixarProtocoloResponse } from './../services/interfaces/baixar-protocolo/baixar-protocolo-response';
+import { ApiService } from './../services/api.service';
+import { ActivatedRoute, NavigationExtras, Router } from '@angular/router';
 import { Component, OnInit } from '@angular/core';
 import { Filesystem, Directory, FileInfo } from '@capacitor/filesystem';
 import { HttpClient } from '@angular/common/http';
-import { Platform, LoadingController, ToastController } from '@ionic/angular';
+import { Platform, LoadingController, ToastController, AlertController } from '@ionic/angular';
 import { Camera, CameraResultType, CameraSource, Photo } from '@capacitor/camera';
 import { finalize } from 'rxjs/operators';
 import { Storage } from '@ionic/storage';
 import { Geolocation } from '@capacitor/geolocation';
+import { ConsultaProtocoloResponse } from '../services/interfaces/consultar-protocolo/consulta-protocolo-response';
 
 const IMAGE_DIR = 'stored-images';
 
@@ -17,12 +21,6 @@ const convertBlobToBase64 = (blob: Blob) => new Promise((resolve, reject) => {
   };
   reader.readAsDataURL(blob);
 });
-
-const printCurrentPosition = async () => {
-  const coordinates = await Geolocation.getCurrentPosition();
-
-  console.log('Current position:', coordinates);
-};
 
 interface LocalFile {
 	name: string;
@@ -44,8 +42,14 @@ export class RetornoArPage implements OnInit {
 
   images: LocalFile[] = [];
   situacoes: Lista[] = [];
+  nuProtocolo = '';
+
   public formRetornoAr: any = {
-		situacao: '1'
+    idTransacao: null,
+		idSituacao: '1',
+    idMotivoNegativa: null,
+    latitude: 0,
+    longitude: 0
 	};
 
   constructor(
@@ -53,12 +57,42 @@ export class RetornoArPage implements OnInit {
     private http: HttpClient,
     private loadingCtrl: LoadingController,
     private toastCtrl: ToastController,
-    private storage: Storage
+    private storage: Storage,
+    private router: Router,
+    private apiService: ApiService,
+    private alertController: AlertController
   ) { }
 
+  atualizarCoordenadas = async () => {
+    const coordinates = await Geolocation.getCurrentPosition();
+    this.formRetornoAr.latitude = coordinates.coords.latitude;
+    this.formRetornoAr.longitude = coordinates.coords.longitude;
+  };
+
   ngOnInit() {
+    const routerState = this.router.getCurrentNavigation().extras.state as ConsultaProtocoloResponse;
+    if(routerState !== undefined) {
+      this.formRetornoAr.idTransacao = routerState.dados.idTransacao;
+      this.nuProtocolo = routerState.dados.nuProtocoloCartorio;
+    }
+
     this.carregarFotos();
     this.carregarSituacoes();
+    this.atualizarCoordenadas();
+  }
+
+  ionViewWillEnter() {
+    this.limparFormulario();
+  }
+
+  limparFormulario() {
+    this.formRetornoAr = {
+      idTransacao: null,
+      idSituacao: '1',
+      idMotivoNegativa: null,
+      latitude: 0,
+      longitude: 0
+    };
   }
 
   /**
@@ -70,7 +104,6 @@ export class RetornoArPage implements OnInit {
 
   async carregarFotos() {
 		this.images = [];
-    printCurrentPosition();
 
 		const loading = await this.loadingCtrl.create({
 			message: 'Carregando...'
@@ -157,38 +190,74 @@ export class RetornoArPage implements OnInit {
 
   // Convert the base64 to blob data
   // and create  formData with it
-  async startUpload(file: LocalFile) {
+  /* async startUpload(file: LocalFile) {
     const response = await fetch(file.data);
     const blob = await response.blob();
     const formData = new FormData();
     formData.append('file', blob, file.name);
     this.uploadData(formData);
-  }
+  } */
 
   // Upload the formData to our API
-  async uploadData(formData: FormData) {
+  async baixarProtocolo() {
     const loading = await this.loadingCtrl.create({
-        message: 'Uploading image...',
+        message: 'Aguarde...',
     });
     await loading.present();
 
-    // Use your own API!
-    const url = 'http://localhost:8888/images/upload.php';
+    // Monta os dados para envio para o backend
+    const formData = new FormData();
+    formData.append('idTransacao', this.formRetornoAr.idTransacao);
+    formData.append('idSituacao', this.formRetornoAr.idSituacao);
+    formData.append('idMotivoNegativa', this.formRetornoAr.idMotivoNegativa);
+    formData.append('latitude', this.formRetornoAr.latitude);
+    formData.append('longitude', this.formRetornoAr.longitude);
+    //console.log(formData, 'formData');
 
-    this.http.post(url, formData)
-        .pipe(
-            finalize(() => {
-                loading.dismiss();
-            })
-        )
-        .subscribe(res => {
-            // eslint-disable-next-line @typescript-eslint/dot-notation
-            if (res['success']) {
-                this.presentToast('File upload complete.');
-            } else {
-                this.presentToast('File upload failed.');
-            }
+    // Adiciona as imagens no formulário para envio ao backend
+    Filesystem.readdir({
+			path: IMAGE_DIR,
+			directory: Directory.Data
+		})
+    .then( async (result) => {
+      for (const f of result.files) {
+        const filePath = `${IMAGE_DIR}/${f.name}`;
+
+        const readFile = await Filesystem.readFile({
+          path: filePath,
+          directory: Directory.Data
         });
+
+        const dataFile = `data:image/jpeg;base64,${readFile.data}`;
+
+        const response = await fetch(dataFile);
+        const blob = await response.blob();
+        formData.append('foto[]', blob, f.name);
+
+      }
+    });
+
+    this.apiService.baixarProtocolo(formData).subscribe(
+      async (retornobaixa: BaixarProtocoloResponse) => {
+        loading.dismiss();
+        if(retornobaixa.ok) {
+          // Remove as imagens
+          await this.removerTodasImagens();
+          // Vai para rota final
+          const navigationExtras: NavigationExtras = {
+            state: retornobaixa
+          };
+          this.router.navigateByUrl('/final', navigationExtras);
+        } else {
+          const alert = await this.alertController.create({
+            header: 'Ops!',
+            message: retornobaixa.msg,
+            buttons: ['OK']
+          });
+          await alert.present();
+        }
+      }
+    );
   }
 
   async deleteImage(file: LocalFile) {
@@ -198,6 +267,28 @@ export class RetornoArPage implements OnInit {
     });
     this.carregarFotos();
     this.presentToast('Foto removida.');
+  }
+
+  /**
+   * Remove todas imagens do app
+   */
+  async removerTodasImagens() {
+
+    Filesystem.readdir({
+			path: IMAGE_DIR,
+			directory: Directory.Data
+		})
+    .then( async (result) => {
+      for (const f of result.files) {
+        const filePath = `${IMAGE_DIR}/${f.name}`;
+
+        await Filesystem.deleteFile({
+          directory: Directory.Data,
+          path: filePath
+        });
+
+      }
+    });
   }
 
   // https://ionicframework.com/docs/angular/your-first-app/3-saving-photos

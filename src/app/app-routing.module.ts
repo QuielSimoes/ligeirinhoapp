@@ -21,6 +21,10 @@ const routes: Routes = [
     path: 'retorno-ar',
     loadChildren: () => import('./retorno-ar/retorno-ar.module').then( m => m.RetornoArPageModule)
   },
+  {
+    path: 'final',
+    loadChildren: () => import('./final/final.module').then( m => m.FinalPageModule)
+  },
 ];
 
 @NgModule({

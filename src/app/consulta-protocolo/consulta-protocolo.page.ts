@@ -3,7 +3,7 @@ import { Component, OnInit } from '@angular/core';
 import { BarcodeScanner } from '@capacitor-community/barcode-scanner';
 import { AlertController, LoadingController } from '@ionic/angular';
 import { FormBuilder, FormGroup, Validators } from '@angular/forms';
-import { Router } from '@angular/router';
+import { NavigationExtras, Router } from '@angular/router';
 import { ConsultaProtocoloResponse } from '../services/interfaces/consultar-protocolo/consulta-protocolo-response';
 
 @Component({
@@ -96,7 +96,10 @@ export class ConsultaProtocoloPage implements OnInit {
           protocolo: ''
         });
         if(res.ok) {
-          this.router.navigateByUrl('/retorno-ar');
+          const navigationExtras: NavigationExtras = {
+            state: res
+          };
+          this.router.navigateByUrl('/retorno-ar', navigationExtras);
         } else {
           const alert = await this.alertController.create({
             header: 'Ops!',

@@ -62,4 +62,8 @@ export class ApiService {
   consultarProtocolo(dados: ConsultaProtocoloRequest): Observable<any> {
     return this.http.post(`${this.url}consultarProtocolo.json`, dados);
   }
+
+  baixarProtocolo(dados: FormData): Observable<any> {
+    return this.http.post(`${this.url}baixarProtocolo.json`, dados);
+  }
 }

@@ -8,49 +8,55 @@
 </ion-header>
 
 <ion-content>
-  <ion-button [disabled]="images.length > 2" expand="full" color="primary" (click)="selectImage()">
-    <ion-icon slot="start" name="camera"></ion-icon>
-    Tirar Foto
-  </ion-button>
+  <div style="margin-top: 20px;">
+    <p>
+      <b>Protocolo:</b> {{ nuProtocolo }}
+    </p>
+    <ion-button [disabled]="images.length > 2" expand="full" color="primary" (click)="selectImage()">
+      <ion-icon slot="start" name="camera"></ion-icon>
+      Tirar Foto
+    </ion-button>
+  
+    <ion-list>
+  
+      <!-- Imagens -->
+      <ion-item *ngFor="let file of images; let i = index">
+        <ion-thumbnail slot="start">
+          <ion-img [src]="file.data"></ion-img>
+        </ion-thumbnail>
+        <ion-label class="ion-text-wrap"> {{ file.name }} </ion-label>
+  
+        <ion-button slot="end" fill="clear" (click)="deleteImage(file)">
+          <ion-icon slot="icon-only" name="trash"></ion-icon>
+        </ion-button>
+      </ion-item>
+  
+      <!-- Situação -->
+      <ion-item>
+        <ion-segment value="1" [(ngModel)]="formRetornoAr.idSituacao">
+          <ion-segment-button value="1">
+            <ion-label color="success">Positiva</ion-label>
+          </ion-segment-button>
+          <ion-segment-button value="0">
+            <ion-label color="danger">Negativa</ion-label>
+          </ion-segment-button>
+        </ion-segment>
+      </ion-item>
+    </ion-list>
 
-  <ion-list>
-		<ion-item *ngFor="let file of images; let i = index">
-			<ion-thumbnail slot="start">
-				<ion-img [src]="file.data"></ion-img>
-			</ion-thumbnail>
-			<ion-label class="ion-text-wrap"> {{ file.name }} </ion-label>
-
-			<ion-button slot="end" fill="clear" (click)="deleteImage(file)">
-				<ion-icon slot="icon-only" name="trash"></ion-icon>
-			</ion-button>
-		</ion-item>
-
-    <ion-item>
-      <ion-segment value="1" [(ngModel)]="formRetornoAr.situacao">
-        <ion-segment-button value="1">
-          <ion-label color="success">Positiva</ion-label>
-        </ion-segment-button>
-        <ion-segment-button value="0">
-          <ion-label color="danger">Negativa</ion-label>
-        </ion-segment-button>
-      </ion-segment>
-    </ion-item>
-	</ion-list>
-
-  <ion-list *ngIf="formRetornoAr.situacao !== '1'">
-    <ion-radio-group>
+    <!-- Motivos da Negativa -->
+    <ion-radio-group *ngIf="formRetornoAr.idSituacao !== '1'" [(ngModel)]="formRetornoAr.idMotivoNegativa">
       <ion-item *ngFor="let situacao of situacoes; let indice = index">
         <ion-label>{{ situacao.nome }}</ion-label>
         <ion-radio slot="end" value="{{ situacao.id }}"></ion-radio>
       </ion-item>
     </ion-radio-group>
-  </ion-list>
-    
+  </div>
 </ion-content>
 
 <ion-footer>
   <ion-toolbar color="success">
-    <ion-button type="submit" fill="clear" expand="full" color="light">
+    <ion-button fill="clear" expand="full" color="light" (click)="baixarProtocolo()">
       <ion-icon slot="start" name="save-outline"></ion-icon>
       Salvar
     </ion-button>      
