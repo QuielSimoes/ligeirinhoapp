@@ -54,7 +54,7 @@ export class JwtInterceptor implements HttpInterceptor {
       return req.clone({
         headers: new HttpHeaders({
           // eslint-disable-next-line @typescript-eslint/naming-convention
-          Authorization: `Bearer ${this.apiService.currentAccessToken}`
+          Authorization: `Bearer ${this.apiService.currentAccessToken}`,
         })
       });
     } else {

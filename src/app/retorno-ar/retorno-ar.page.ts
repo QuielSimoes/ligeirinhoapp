@@ -3,7 +3,7 @@ import { ApiService } from './../services/api.service';
 import { ActivatedRoute, NavigationExtras, Router } from '@angular/router';
 import { Component, OnInit } from '@angular/core';
 import { Filesystem, Directory, FileInfo } from '@capacitor/filesystem';
-import { HttpClient } from '@angular/common/http';
+import { HttpClient, HttpErrorResponse } from '@angular/common/http';
 import { Platform, LoadingController, ToastController, AlertController } from '@ionic/angular';
 import { Camera, CameraResultType, CameraSource, Photo } from '@capacitor/camera';
 import { finalize } from 'rxjs/operators';
@@ -42,15 +42,12 @@ export class RetornoArPage implements OnInit {
 
   images: LocalFile[] = [];
   situacoes: Lista[] = [];
-  nuProtocolo = '';
-
-  public formRetornoAr: any = {
-    idTransacao: null,
-		idSituacao: '1',
-    idMotivoNegativa: null,
-    latitude: 0,
-    longitude: 0
-	};
+  nuProtocolo: string;
+  idTransacao: number;
+  idSituacao = '3';
+  latitude: number;
+  longitude: number;
+  idMotivoNegativa: number;
 
   constructor(
     private plt: Platform,
@@ -65,15 +62,18 @@ export class RetornoArPage implements OnInit {
 
   atualizarCoordenadas = async () => {
     const coordinates = await Geolocation.getCurrentPosition();
-    this.formRetornoAr.latitude = coordinates.coords.latitude;
-    this.formRetornoAr.longitude = coordinates.coords.longitude;
+    this.latitude = coordinates.coords.latitude;
+    this.longitude = coordinates.coords.longitude;
   };
 
   ngOnInit() {
     const routerState = this.router.getCurrentNavigation().extras.state as ConsultaProtocoloResponse;
     if(routerState !== undefined) {
-      this.formRetornoAr.idTransacao = routerState.dados.idTransacao;
+      this.storage.set('PROTOCOLO_ATUAL', routerState);
+      this.idTransacao = routerState.dados.idTransacao;
       this.nuProtocolo = routerState.dados.nuProtocoloCartorio;
+    } else {
+      this.carregarDadosProtocoloAtual();
     }
 
     this.carregarFotos();
@@ -81,18 +81,26 @@ export class RetornoArPage implements OnInit {
     this.atualizarCoordenadas();
   }
 
+  ionViewWillLeave() {
+    //this.storage.set('PROTOCOLO_ATUAL', null);
+  }
+
+  async carregarDadosProtocoloAtual() {
+    const protocoloAtual = await this.storage.get('PROTOCOLO_ATUAL') as ConsultaProtocoloResponse;
+    this.idTransacao = protocoloAtual.dados.idTransacao;
+    this.nuProtocolo = protocoloAtual.dados.nuProtocoloCartorio;
+  }
+
   ionViewWillEnter() {
     this.limparFormulario();
   }
 
   limparFormulario() {
-    this.formRetornoAr = {
-      idTransacao: null,
-      idSituacao: '1',
-      idMotivoNegativa: null,
-      latitude: 0,
-      longitude: 0
-    };
+    this.idSituacao = '3';
+    this.idTransacao = 0;
+    this.latitude = 0;
+    this.latitude = 0;
+    this.idMotivoNegativa = 0;
   }
 
   /**
@@ -176,7 +184,7 @@ export class RetornoArPage implements OnInit {
   async saveImage(photo: Photo) {
       const base64Data = await this.readAsBase64(photo);
 
-      const fileName = new Date().getTime() + '.jpeg';
+      const fileName = new Date().getTime() + '.png';
       const savedFile = await Filesystem.writeFile({
           path: `${IMAGE_DIR}/${fileName}`,
           data: base64Data,
@@ -188,16 +196,6 @@ export class RetornoArPage implements OnInit {
       this.carregarFotos();
   }
 
-  // Convert the base64 to blob data
-  // and create  formData with it
-  /* async startUpload(file: LocalFile) {
-    const response = await fetch(file.data);
-    const blob = await response.blob();
-    const formData = new FormData();
-    formData.append('file', blob, file.name);
-    this.uploadData(formData);
-  } */
-
   // Upload the formData to our API
   async baixarProtocolo() {
     const loading = await this.loadingCtrl.create({
@@ -205,59 +203,82 @@ export class RetornoArPage implements OnInit {
     });
     await loading.present();
 
-    // Monta os dados para envio para o backend
     const formData = new FormData();
-    formData.append('idTransacao', this.formRetornoAr.idTransacao);
-    formData.append('idSituacao', this.formRetornoAr.idSituacao);
-    formData.append('idMotivoNegativa', this.formRetornoAr.idMotivoNegativa);
-    formData.append('latitude', this.formRetornoAr.latitude);
-    formData.append('longitude', this.formRetornoAr.longitude);
-    //console.log(formData, 'formData');
 
-    // Adiciona as imagens no formulário para envio ao backend
-    Filesystem.readdir({
-			path: IMAGE_DIR,
-			directory: Directory.Data
-		})
-    .then( async (result) => {
-      for (const f of result.files) {
-        const filePath = `${IMAGE_DIR}/${f.name}`;
+    formData.append('idSituacao', this.idSituacao);
+    formData.append('idMotivoNegativa', this.idMotivoNegativa.toString());
 
-        const readFile = await Filesystem.readFile({
-          path: filePath,
-          directory: Directory.Data
+    // Lê o storage para obter o protocolo
+    await this.storage.get('PROTOCOLO_ATUAL').then((protocolo: ConsultaProtocoloResponse) => {
+
+      formData.append('idTransacao', protocolo.dados.idTransacao.toString());
+
+      // Lê as coordenadas
+      this.atualizarCoordenadas().then(() => {
+        formData.append('latitude', this.latitude.toString());
+        formData.append('longitude', this.longitude.toString());
+
+        const upload = new Promise<any>((resolve, reject) => {
+
+          Filesystem.readdir({
+            path: IMAGE_DIR,
+            directory: Directory.Data
+          })
+          .then( async (result) => {
+            for (const f of result.files) {
+              const filePath = `${IMAGE_DIR}/${f.name}`;
+              const readFile = await Filesystem.readFile({
+                path: filePath,
+                directory: Directory.Data
+              });
+              const dataFile = `data:image/png;base64,${readFile.data}`;
+              const response = await fetch(dataFile);
+              const blob = await response.blob();
+              formData.append('fotos[]', blob, f.name);
+            }
+            resolve(formData);
+          });
+
         });
 
-        const dataFile = `data:image/jpeg;base64,${readFile.data}`;
+        upload.then((formulario) => {
 
-        const response = await fetch(dataFile);
-        const blob = await response.blob();
-        formData.append('foto[]', blob, f.name);
+            this.apiService.baixarProtocolo(formulario)
+              .subscribe(
+                async (retornobaixa: BaixarProtocoloResponse) => {
+                  loading.dismiss();
+                  if(retornobaixa.ok) {
+                    // Remove as imagens
+                    await this.removerTodasImagens();
+                    // Vai para rota final
+                    const navigationExtras: NavigationExtras = {
+                      state: retornobaixa
+                    };
+                    this.router.navigateByUrl('/final', navigationExtras);
+                  } else {
+                    const alert = await this.alertController.create({
+                      header: 'Ops!',
+                      message: retornobaixa.msg,
+                      buttons: ['OK']
+                    });
+                    await alert.present();
+                  }
+                },
+                (error: HttpErrorResponse) => {
+                  loading.dismiss();
+                  console.log(error);
+                  if (error.error instanceof Error) {
+                    console.log('Client-side error occured.');
+                  } else {
+                      console.log('Server-side error occured.');
+                  }
+                }
+              );
 
-      }
+          });
+        });
     });
 
-    this.apiService.baixarProtocolo(formData).subscribe(
-      async (retornobaixa: BaixarProtocoloResponse) => {
-        loading.dismiss();
-        if(retornobaixa.ok) {
-          // Remove as imagens
-          await this.removerTodasImagens();
-          // Vai para rota final
-          const navigationExtras: NavigationExtras = {
-            state: retornobaixa
-          };
-          this.router.navigateByUrl('/final', navigationExtras);
-        } else {
-          const alert = await this.alertController.create({
-            header: 'Ops!',
-            message: retornobaixa.msg,
-            buttons: ['OK']
-          });
-          await alert.present();
-        }
-      }
-    );
   }
 
   async deleteImage(file: LocalFile) {
