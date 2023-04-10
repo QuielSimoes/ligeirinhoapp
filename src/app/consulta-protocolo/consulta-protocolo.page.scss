@@ -18,3 +18,9 @@
   height: 50px;
   z-index: 11;
 }
+
+.background {
+  --background: url('/assets/bg.jpg') 0 0/100% 100% no-repeat;
+}
+
+ion-item { --background: transparent !important; }

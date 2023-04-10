@@ -1,14 +1,13 @@
 import { BaixarProtocoloResponse } from './../services/interfaces/baixar-protocolo/baixar-protocolo-response';
 import { ApiService } from './../services/api.service';
-import { ActivatedRoute, NavigationExtras, Router } from '@angular/router';
+import { NavigationExtras, Router } from '@angular/router';
 import { Component, OnInit } from '@angular/core';
 import { Filesystem, Directory, FileInfo } from '@capacitor/filesystem';
 import { HttpClient, HttpErrorResponse } from '@angular/common/http';
 import { Platform, LoadingController, ToastController, AlertController } from '@ionic/angular';
 import { Camera, CameraResultType, CameraSource, Photo } from '@capacitor/camera';
-import { finalize } from 'rxjs/operators';
 import { Storage } from '@ionic/storage';
-import { Geolocation } from '@capacitor/geolocation';
+import { Position } from '@capacitor/geolocation';
 import { ConsultaProtocoloResponse } from '../services/interfaces/consultar-protocolo/consulta-protocolo-response';
 
 const IMAGE_DIR = 'stored-images';
@@ -45,8 +44,8 @@ export class RetornoArPage implements OnInit {
   nuProtocolo: string;
   idTransacao: number;
   idSituacao = '3';
-  latitude: number;
-  longitude: number;
+  lat: number;
+  lng: number;
   idMotivoNegativa: number;
 
   constructor(
@@ -60,12 +59,6 @@ export class RetornoArPage implements OnInit {
     private alertController: AlertController
   ) { }
 
-  atualizarCoordenadas = async () => {
-    const coordinates = await Geolocation.getCurrentPosition();
-    this.latitude = coordinates.coords.latitude;
-    this.longitude = coordinates.coords.longitude;
-  };
-
   ngOnInit() {
     const routerState = this.router.getCurrentNavigation().extras.state as ConsultaProtocoloResponse;
     if(routerState !== undefined) {
@@ -78,11 +71,15 @@ export class RetornoArPage implements OnInit {
 
     this.carregarFotos();
     this.carregarSituacoes();
-    this.atualizarCoordenadas();
-  }
 
-  ionViewWillLeave() {
-    //this.storage.set('PROTOCOLO_ATUAL', null);
+    if (navigator.geolocation) {
+      navigator.geolocation.getCurrentPosition(position => {
+          this.lat = position.coords.latitude;
+          this.lng = position.coords.longitude;
+        });
+    } else {
+      this.presentToast('Por favor ative o GPS com a opção de precisão ativada.');
+    }
   }
 
   async carregarDadosProtocoloAtual() {
@@ -98,8 +95,6 @@ export class RetornoArPage implements OnInit {
   limparFormulario() {
     this.idSituacao = '3';
     this.idTransacao = 0;
-    this.latitude = 0;
-    this.latitude = 0;
     this.idMotivoNegativa = 0;
   }
 
@@ -214,9 +209,9 @@ export class RetornoArPage implements OnInit {
       formData.append('idTransacao', protocolo.dados.idTransacao.toString());
 
       // Lê as coordenadas
-      this.atualizarCoordenadas().then(() => {
-        formData.append('latitude', this.latitude.toString());
-        formData.append('longitude', this.longitude.toString());
+      navigator.geolocation.getCurrentPosition(position => {
+        formData.append('latitude', position.coords.latitude.toString());
+        formData.append('longitude', position.coords.longitude.toString());
 
         const upload = new Promise<any>((resolve, reject) => {
 
@@ -264,7 +259,7 @@ export class RetornoArPage implements OnInit {
                     await alert.present();
                   }
                 },
-                (error: HttpErrorResponse) => {
+                async (error: HttpErrorResponse) => {
                   loading.dismiss();
                   console.log(error);
                   if (error.error instanceof Error) {
@@ -272,11 +267,21 @@ export class RetornoArPage implements OnInit {
                   } else {
                       console.log('Server-side error occured.');
                   }
+
+                  const alert = await this.alertController.create({
+                    header: 'Aviso',
+                    message: 'Serviço indisponível, por favor tente novamente mais tarde.',
+                    buttons: ['OK']
+                  });
+                  await alert.present();
                 }
               );
 
           });
-        });
+      });
+      //this.atualizarCoordenadas().then(() => {
+
+      //});
     });
 
   }

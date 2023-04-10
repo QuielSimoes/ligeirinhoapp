@@ -40,13 +40,13 @@ export class ApiService {
       tap(async (loginResponse: LoginResponse) => {
         if (loginResponse.ok) {
           const situacoes = loginResponse.dados.situacoesNegativas;
-          //console.log(loginResponse.dados.situacoesNegativas, 'situacoesNegativas');
           await this.storage.set('ID', loginResponse.dados.id);
           await this.storage.set('NOME', loginResponse.dados.nome);
           await this.storage.set('FOTO', loginResponse.dados.foto);
           await this.storage.set('ULTIMO_ACESSO', loginResponse.dados.ultimoAcesso);
           await this.storage.set('TOKEN', loginResponse.dados.token);
           await this.storage.set('SITUACOES', situacoes);
+          this.currentAccessToken = loginResponse.dados.token;
           this.isAuthenticated.next(true);
         }
       })

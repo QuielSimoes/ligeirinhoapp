@@ -4,8 +4,8 @@
 
 export const environment = {
   production: false,
-  //apiUrl: 'https://homologacao.ligeirinho-ba.com.br/api/'
-  apiUrl: 'http://ligeirinho/api/'
+  apiUrl: 'https://homologacao.ligeirinho-ba.com.br/api/'
+  //apiUrl: 'http://ligeirinho/api/'
 };
 
 /*

@@ -1,3 +1,4 @@
+import { HttpErrorResponse } from '@angular/common/http';
 import { LoginResponse } from './../services/interfaces/login/login-response';
 import { Router } from '@angular/router';
 import { Component, OnInit } from '@angular/core';
@@ -46,6 +47,22 @@ export class LoginPage implements OnInit {
           });
           await alert.present();
         }
+      },
+      async (error: HttpErrorResponse) => {
+        loading.dismiss();
+        console.log(error);
+        if (error.error instanceof Error) {
+          console.log('Client-side error occured.');
+        } else {
+            console.log('Server-side error occured.');
+        }
+
+        const alert = await this.alertController.create({
+          header: 'Aviso',
+          message: 'Serviço indisponível, por favor tente novamente mais tarde.',
+          buttons: ['OK']
+        });
+        await alert.present();
       }
     );
   }

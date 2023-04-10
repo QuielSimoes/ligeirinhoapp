@@ -1,3 +1,4 @@
+import { HttpErrorResponse } from '@angular/common/http';
 import { ApiService } from './../services/api.service';
 import { Component, OnInit } from '@angular/core';
 import { BarcodeScanner } from '@capacitor-community/barcode-scanner';
@@ -50,17 +51,14 @@ export class ConsultaProtocoloPage implements OnInit {
       BarcodeScanner.hideBackground();
 
       const result = await BarcodeScanner.startScan();
-      //console.log(result);
+
       if (result.hasContent) {
         this.scanActive = false;
-        //this.nuProtocolo = result.content;
         this.protocolo.setValue({
           protocolo: result.content
         });
 
         this.consultarProtocolo();
-        //alert(result.content); //The QR content will come out here
-        //Handle the data as your heart desires here
       } else {
         const alert = await this.alertController.create({
           header: 'Aviso',
@@ -91,7 +89,6 @@ export class ConsultaProtocoloPage implements OnInit {
     this.apiService.consultarProtocolo(this.protocolo.value).subscribe(
       async (res: ConsultaProtocoloResponse) => {
         await loading.dismiss();
-        //console.log(res);
         this.protocolo.setValue({
           protocolo: ''
         });
@@ -108,6 +105,22 @@ export class ConsultaProtocoloPage implements OnInit {
           });
           await alert.present();
         }
+      },
+      async (error: HttpErrorResponse) => {
+        loading.dismiss();
+        console.log(error);
+        if (error.error instanceof Error) {
+          console.log('Client-side error occured.');
+        } else {
+            console.log('Server-side error occured.');
+        }
+
+        const alert = await this.alertController.create({
+          header: 'Aviso',
+          message: 'Serviço indisponível, por favor tente novamente mais tarde.',
+          buttons: ['OK']
+        });
+        await alert.present();
       }
     );
   }
